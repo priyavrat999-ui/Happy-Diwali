@@ -78,6 +78,10 @@ input {
   font-size: 16px;
 }
 
+input::placeholder {
+  color: #aaa;
+}
+
 button {
   background: linear-gradient(45deg,#a66a15,#ffdc83);
   border: none;
@@ -122,6 +126,8 @@ button:disabled {
 #fireworks {
   position: fixed;
   inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 10;
 }
@@ -183,10 +189,19 @@ button:disabled {
     <p>✦ A Little Magic Is Waiting For You ✦</p>
 
     <h3 style="margin-top:35px;color:#f5d89a">
-      ENTER YOUR DOB TO SEE MAGIC
+      ENTER YOUR NAME TO SEE MAGIC
     </h3>
 
-    <input type="date" id="dob">
+    <input
+      type="text"
+      id="visitorName"
+      placeholder="Enter your name"
+      maxlength="30"
+      autocomplete="given-name"
+      aria-label="Your name"
+      required
+      onkeydown="if(event.key==='Enter') unlockMagic()"
+    >
 
     <br>
     <button onclick="unlockMagic()">UNLOCK ✨</button>
@@ -244,7 +259,7 @@ button:disabled {
     <div id="celebration">
       <h1>HAPPY DIWALI!</h1>
 
-      <h2 style="color:#ffdc83; margin:15px;">
+      <h2 id="personalGreeting" style="color:#ffdc83; margin:15px;">
         🎆 HAPPY DIWALI! 🎆
       </h2>
 
@@ -253,7 +268,8 @@ button:disabled {
         May happiness, success and prosperity always find you.
       </p>
 
-      <button onclick="playGirlDiwaliVoice()" style="margin: 20px 0; background: linear-gradient(45deg, #ff8c00, #ff4500); color: white;">
+      <button onclick="playGirlDiwaliVoice()"
+        style="margin:20px 0;background:linear-gradient(45deg,#ff8c00,#ff4500);color:white;">
         🔊 REPLAY VOICE
       </button>
 
@@ -354,29 +370,41 @@ function playExplosionSound() {
   source.start(now);
 }
 
-// GIRL'S VOICE: "HAPPY DIWALI!"
+// VISITOR NAME
+let visitorName = "";
+
+// GIRL'S VOICE: PERSONALIZED HAPPY DIWALI
 function playGirlDiwaliVoice() {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance("Happy Diwali!");
-    
-    // Select Female Voice
+
+    const spokenName = visitorName ? ", " + visitorName : "";
+    const utterance = new SpeechSynthesisUtterance(
+      "Happy Diwali" + spokenName + "!"
+    );
+
     const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Google UK English Female') || v.name.includes('Zira') || v.name.includes('Samantha') || (v.lang.includes('en') && v.name.includes('Female')));
+
+    const femaleVoice = voices.find(v =>
+      v.name.includes('Female') ||
+      v.name.includes('Google UK English Female') ||
+      v.name.includes('Zira') ||
+      v.name.includes('Samantha') ||
+      (v.lang.includes('en') && v.name.includes('Female'))
+    );
 
     if (femaleVoice) {
       utterance.voice = femaleVoice;
     }
 
-    utterance.pitch = 1.4; // Pitch adjusted for a sweet female voice
+    utterance.pitch = 1.4;
     utterance.rate = 1.0;
-    
+
     window.speechSynthesis.speak(utterance);
   }
 }
 
-// Ensure voices are loaded properly in Web Speech API
+// Ensure voices are loaded
 if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = () => {
     window.speechSynthesis.getVoices();
@@ -385,6 +413,18 @@ if ('speechSynthesis' in window) {
 
 // ENTRY MAGIC
 function unlockMagic() {
+  const nameInput = document.getElementById("visitorName");
+  visitorName = nameInput.value.trim();
+
+  if (!visitorName) {
+    nameInput.focus();
+    nameInput.placeholder = "Please enter your name first";
+    return;
+  }
+
+  document.getElementById("personalGreeting").textContent =
+    "🎆 HAPPY DIWALI, " + visitorName + "! 🎆";
+
   getAudioContext();
 
   showScreen("portal");
@@ -417,7 +457,6 @@ function createDiyas() {
       if (diya.classList.contains("lit")) return;
 
       diya.classList.add("lit");
-
       count++;
 
       document.getElementById("score").innerText =
@@ -461,7 +500,6 @@ function startBomb() {
   let seconds = 3;
   countdown.innerText = seconds;
 
-  // Fuse sizzling sound
   sparkTimer = setInterval(() => {
     playSparkSound();
   }, 180);
@@ -474,28 +512,166 @@ function startBomb() {
     } else {
       clearInterval(timer);
       clearInterval(sparkTimer);
-
       countdown.innerText = "";
-
       explodeBomb();
     }
   }, 1000);
 }
 
-// CONTINUOUS AUTOMATIC FIREWORKS REGULAR INTERVAL
-let continuousFireworksInterval;
+// GRAND FIREWORKS ENGINE
+let continuousFireworksInterval = null;
+let particles = [];
+let rockets = [];
 
-function startContinuousFireworks() {
-  // Har 400ms me apne aap multiple pathake futenge
-  continuousFireworksInterval = setInterval(() => {
-    fireworksBurst();
-    if (Math.random() > 0.4) {
-      playExplosionSound();
-    }
-  }, 400);
+const canvas = document.getElementById("fireworks");
+const ctx = canvas.getContext("2d");
+
+const colors = [
+  "#ffd700", "#ff4500", "#ff007f",
+  "#00e5ff", "#76ff03", "#ffffff", "#b388ff"
+];
+
+function resizeCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-// PATHAKA EXPLOSION + GIRL VOICE + MULTIPLE KHUD SE PATHAKE FUTNA
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// Create colourful fireworks burst
+function fireworksBurst(x, y, mega = false) {
+  x = x ?? Math.random() * window.innerWidth;
+  y = y ?? Math.random() * window.innerHeight * 0.55;
+
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const total = mega ? 145 : 90;
+
+  for (let i = 0; i < total; i++) {
+    const angle = (Math.PI * 2 * i) / total + Math.random() * 0.08;
+    const speed = (mega ? 2 : 1.2) + Math.random() * (mega ? 5.5 : 4.2);
+
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 75 + Math.random() * 35,
+      maxLife: 110,
+      size: 1.2 + Math.random() * 2.4,
+      color: Math.random() > 0.25
+        ? color
+        : colors[Math.floor(Math.random() * colors.length)]
+    });
+  }
+}
+
+// Launch rockets from bottom of screen
+function launchFireworkRocket() {
+  rockets.push({
+    x: 25 + Math.random() * (window.innerWidth - 50),
+    y: window.innerHeight + 5,
+    targetY: window.innerHeight * (0.12 + Math.random() * 0.42),
+    speed: 5 + Math.random() * 3
+  });
+}
+
+// Animation engine
+function animate() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  ctx.clearRect(0, 0, width, height);
+
+  rockets.forEach((rocket, index) => {
+    rocket.y -= rocket.speed;
+
+    ctx.beginPath();
+    ctx.arc(rocket.x, rocket.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff4bd";
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "#ffd700";
+    ctx.fill();
+
+    if (rocket.y <= rocket.targetY) {
+      fireworksBurst(
+        rocket.x,
+        rocket.y,
+        Math.random() > 0.55
+      );
+      rockets.splice(index, 1);
+    }
+  });
+
+  particles = particles.filter(p => p.life > 0);
+
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.035;
+    p.vx *= 0.986;
+    p.vy *= 0.986;
+    p.life--;
+
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.shadowBlur = 13;
+    ctx.shadowColor = p.color;
+    ctx.fillStyle = p.color;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+
+// Continuous fireworks on final greeting
+function startContinuousFireworks() {
+  if (continuousFireworksInterval) {
+    clearInterval(continuousFireworksInterval);
+  }
+
+  // Grand opening burst
+  for (let i = 0; i < 6; i++) {
+    setTimeout(() => {
+      fireworksBurst(
+        window.innerWidth * (0.12 + Math.random() * 0.76),
+        window.innerHeight * (0.12 + Math.random() * 0.43),
+        true
+      );
+    }, i * 220);
+  }
+
+  // Repeated fireworks
+  continuousFireworksInterval = setInterval(() => {
+    launchFireworkRocket();
+
+    if (Math.random() > 0.35) {
+      fireworksBurst(
+        window.innerWidth * (0.12 + Math.random() * 0.76),
+        window.innerHeight * (0.12 + Math.random() * 0.42)
+      );
+    }
+
+    if (Math.random() > 0.55) {
+      playExplosionSound();
+    }
+  }, 850);
+}
+
+// BOMB EXPLOSION AND FINAL GREETING
 function explodeBomb() {
   const bomb = document.getElementById("bomb");
   const title = document.getElementById("bombTitle");
@@ -506,86 +682,18 @@ function explodeBomb() {
 
   title.style.display = "none";
 
-  // 1. Initial Blast sound
   playExplosionSound();
   fireworksBurst();
 
-  // 2. Play Girl Voice
-  playGirlDiwaliVoice();
-
   setTimeout(() => {
     showScreen("final");
+
     document.getElementById("celebration").style.display = "block";
-    
-    // 3. Auto multiple fireworks array
+
     startContinuousFireworks();
+    playGirlDiwaliVoice();
   }, 500);
 }
-
-// FIREWORKS ANIMATION
-const canvas = document.getElementById("fireworks");
-const ctx = canvas.getContext("2d");
-
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
-
-let particles = [];
-const colors = ["#ffd700", "#ff4500", "#ff007f", "#00e5ff", "#76ff03", "#ffffff"];
-
-function fireworksBurst() {
-  let x = Math.random() * canvas.width;
-  let y = Math.random() * canvas.height * 0.6;
-  let color = colors[Math.floor(Math.random() * colors.length)];
-
-  for (let i = 0; i < 70; i++) {
-    let angle = Math.random() * Math.PI * 2;
-    let speed = Math.random() * 7 + 1;
-
-    particles.push({
-      x: x,
-      y: y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: 90,
-      size: Math.random() * 3 + 1,
-      color: color
-    });
-  }
-}
-
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  for (let i = particles.length - 1; i >= 0; i--) {
-    let p = particles[i];
-
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.035;
-    p.life--;
-
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = p.life / 90;
-
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1.0;
-
-    if (p.life <= 0) {
-      particles.splice(i, 1);
-    }
-  }
-
-  requestAnimationFrame(animate);
-}
-
-animate();
 
 </script>
 
