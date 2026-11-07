@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diwali Magic | Priyavrat Yadav</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(circle, #25202b, #05060d 75%);
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+}
+
+.screen {
+  min-height: 100vh;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 20px;
+}
+
+.screen.active {
+  display: flex;
+}
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  padding: 30px 22px;
+  border: 1px solid #bd9145;
+  border-radius: 22px;
+  background: rgba(20,22,34,.96);
+  box-shadow: 0 0 45px #d99b3540;
+}
+
+h1 {
+  color: #ffd77a;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px #d89c32;
+  margin: 18px 0;
+}
+
+p {
+  color: #ddd;
+  line-height: 1.7;
+}
+
+.diya {
+  font-size: 85px;
+  margin: 20px;
+  animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+  from { filter: drop-shadow(0 0 8px orange); }
+  to { filter: drop-shadow(0 0 35px gold); }
+}
+
+input {
+  padding: 15px;
+  width: 90%;
+  background: #171925;
+  border: 1px solid #d5a94c;
+  border-radius: 10px;
+  color: white;
+  margin: 25px 0;
+  font-size: 16px;
+}
+
+button {
+  background: linear-gradient(45deg,#a66a15,#ffdc83);
+  border: none;
+  padding: 15px 30px;
+  border-radius: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #17100a;
+  font-size: 15px;
+  transition: .3s;
+}
+
+button:hover {
+  transform: scale(1.07);
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.diyas {
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  gap: 18px;
+  margin: 30px auto;
+  max-width: 350px;
+}
+
+.diya-item {
+  font-size: 40px;
+  cursor: pointer;
+  filter: grayscale(1);
+  transition: .3s;
+}
+
+.diya-item.lit {
+  filter: drop-shadow(0 0 18px gold);
+  transform: scale(1.2);
+}
+
+#fireworks {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#bomb {
+  font-size: 100px;
+  margin: 25px;
+  display: inline-block;
+}
+
+@keyframes bombShake {
+  0%,100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-12deg) scale(1.1); }
+  75% { transform: rotate(12deg) scale(1.1); }
+}
+
+.bomb-burning {
+  animation: bombShake .2s infinite;
+}
+
+@keyframes explosion {
+  0% { transform: scale(.2); opacity: 0; }
+  50% { transform: scale(2.5); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.explosion {
+  animation: explosion .7s ease-out;
+}
+
+#celebration {
+  display: none;
+}
+
+#celebration h1 {
+  font-size: clamp(28px,7vw,43px);
+}
+
+@keyframes appear {
+  from { opacity: 0; transform: translateY(25px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.celebration-content {
+  animation: appear 1s ease-out;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="fireworks"></canvas>
+
+<!-- ENTRY SCREEN -->
+<section class="screen active" id="entry">
+  <div class="card">
+    <div class="diya">🪔</div>
+    <h1>DIWALI MAGIC</h1>
+    <p>✦ A Little Magic Is Waiting For You ✦</p>
+
+    <h3 style="margin-top:35px;color:#f5d89a">
+      ENTER YOUR DOB TO SEE MAGIC
+    </h3>
+
+    <input type="date" id="dob">
+
+    <br>
+    <button onclick="unlockMagic()">UNLOCK ✨</button>
+  </div>
+</section>
+
+<!-- PORTAL SCREEN -->
+<section class="screen" id="portal">
+  <div class="diya">✨</div>
+  <h1>ACCESS GRANTED!</h1>
+  <p>Welcome To Your Diwali Magic Universe...</p>
+</section>
+
+<!-- DIYA GAME -->
+<section class="screen" id="game">
+  <div class="card">
+    <h1>LIGHT UP THE DIYAS</h1>
+    <p>Tap all 10 diyas to spread the light!</p>
+
+    <div class="diyas" id="diyas"></div>
+
+    <h3 id="score">0 / 10 LIT</h3>
+    <p style="margin-top:15px">Every diya brings more happiness!</p>
+  </div>
+</section>
+
+<!-- BOMB SCREEN -->
+<section class="screen" id="bombScreen">
+  <div class="card">
+    <h1>ONE LAST SURPRISE!</h1>
+    <p>Ready for your Diwali celebration?</p>
+
+    <div id="bomb">🧨</div>
+
+    <h2 id="bombTitle" style="color:#ffd77a">
+      LIGHT THE FUSE!
+    </h2>
+
+    <button id="fuseButton" onclick="startBomb()">
+      LIGHT THE FUSE 🔥
+    </button>
+
+    <p id="countdown"
+       style="font-size:22px;color:#ffca70;margin-top:20px">
+    </p>
+  </div>
+</section>
+
+<!-- FINAL GREETING -->
+<section class="screen" id="final">
+  <div class="card celebration-content">
+
+    <div class="diya">🪔</div>
+
+    <div id="celebration">
+      <h1>HAPPY DIWALI!</h1>
+
+      <h2 style="color:#ffdc83; margin:15px;">
+        🎆 HAPPY DIWALI! 🎆
+      </h2>
+
+      <p style="margin-top:20px">
+        May your life shine brighter than a thousand diyas.
+        May happiness, success and prosperity always find you.
+      </p>
+
+      <button onclick="playGirlDiwaliVoice()" style="margin: 20px 0; background: linear-gradient(45deg, #ff8c00, #ff4500); color: white;">
+        🔊 REPLAY VOICE
+      </button>
+
+      <h2 style="color:#ffd77a;margin-top:15px">
+        ✨ KEEP SHINING ✨
+      </h2>
+
+      <p style="margin-top:15px">With Best Wishes</p>
+
+      <h3 style="color:#ffd77a">Priyavrat Yadav</h3>
+    </div>
+
+  </div>
+</section>
+
+<script>
+
+// SCREEN NAVIGATION
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(screen => {
+    screen.classList.remove("active");
+  });
+
+  document.getElementById(id).classList.add("active");
+}
+
+// AUDIO ENGINE
+let audioContext;
+
+function getAudioContext() {
+  if (!audioContext) {
+    audioContext = new (
+      window.AudioContext || window.webkitAudioContext
+    )();
+  }
+
+  if (audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+
+  return audioContext;
+}
+
+// FUSE SIZZLING SOUND
+function playSparkSound() {
+  const ctx = getAudioContext();
+
+  const length = ctx.sampleRate * 0.15;
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < length; i++) {
+    data[i] = (Math.random() * 2 - 1) * 0.35;
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = "highpass";
+  filter.frequency.value = 2500;
+
+  const gain = ctx.createGain();
+  gain.gain.value = 0.35;
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  source.start();
+}
+
+// FIRECRACKER EXPLOSION SOUND
+function playExplosionSound() {
+  const ctx = getAudioContext();
+  const now = ctx.currentTime;
+
+  const length = ctx.sampleRate * 0.8;
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < length; i++) {
+    data[i] =
+      (Math.random() * 2 - 1) *
+      Math.pow(1 - i / length, 2);
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(1, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+  source.connect(gain);
+  gain.connect(ctx.destination);
+
+  source.start(now);
+}
+
+// GIRL'S VOICE: "HAPPY DIWALI!"
+function playGirlDiwaliVoice() {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance("Happy Diwali!");
+    
+    // Select Female Voice
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Google UK English Female') || v.name.includes('Zira') || v.name.includes('Samantha') || (v.lang.includes('en') && v.name.includes('Female')));
+
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+
+    utterance.pitch = 1.4; // Pitch adjusted for a sweet female voice
+    utterance.rate = 1.0;
+    
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+// Ensure voices are loaded properly in Web Speech API
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
+
+// ENTRY MAGIC
+function unlockMagic() {
+  getAudioContext();
+
+  showScreen("portal");
+  fireworksBurst();
+
+  setTimeout(() => {
+    showScreen("game");
+    createDiyas();
+  }, 2800);
+}
+
+// DIYA GAME
+let count = 0;
+
+function createDiyas() {
+  const container = document.getElementById("diyas");
+
+  container.innerHTML = "";
+  count = 0;
+
+  document.getElementById("score").innerText = "0 / 10 LIT";
+
+  for (let i = 0; i < 10; i++) {
+    let diya = document.createElement("div");
+
+    diya.className = "diya-item";
+    diya.innerText = "🪔";
+
+    diya.onclick = function() {
+      if (diya.classList.contains("lit")) return;
+
+      diya.classList.add("lit");
+
+      count++;
+
+      document.getElementById("score").innerText =
+        count + " / 10 LIT";
+
+      if (count === 10) {
+        fireworksBurst();
+
+        setTimeout(() => {
+          showScreen("bombScreen");
+        }, 1000);
+      }
+    };
+
+    container.appendChild(diya);
+  }
+}
+
+// BOMB SEQUENCE
+let bombStarted = false;
+let sparkTimer;
+
+function startBomb() {
+  if (bombStarted) return;
+
+  bombStarted = true;
+
+  getAudioContext();
+
+  const bomb = document.getElementById("bomb");
+  const button = document.getElementById("fuseButton");
+  const title = document.getElementById("bombTitle");
+  const countdown = document.getElementById("countdown");
+
+  button.disabled = true;
+  button.style.display = "none";
+
+  title.innerText = "FUSE IGNITED! 🔥";
+  bomb.classList.add("bomb-burning");
+
+  let seconds = 3;
+  countdown.innerText = seconds;
+
+  // Fuse sizzling sound
+  sparkTimer = setInterval(() => {
+    playSparkSound();
+  }, 180);
+
+  const timer = setInterval(() => {
+    seconds--;
+
+    if (seconds > 0) {
+      countdown.innerText = seconds;
+    } else {
+      clearInterval(timer);
+      clearInterval(sparkTimer);
+
+      countdown.innerText = "";
+
+      explodeBomb();
+    }
+  }, 1000);
+}
+
+// CONTINUOUS AUTOMATIC FIREWORKS REGULAR INTERVAL
+let continuousFireworksInterval;
+
+function startContinuousFireworks() {
+  // Har 400ms me apne aap multiple pathake futenge
+  continuousFireworksInterval = setInterval(() => {
+    fireworksBurst();
+    if (Math.random() > 0.4) {
+      playExplosionSound();
+    }
+  }, 400);
+}
+
+// PATHAKA EXPLOSION + GIRL VOICE + MULTIPLE KHUD SE PATHAKE FUTNA
+function explodeBomb() {
+  const bomb = document.getElementById("bomb");
+  const title = document.getElementById("bombTitle");
+
+  bomb.classList.remove("bomb-burning");
+  bomb.innerText = "💥";
+  bomb.classList.add("explosion");
+
+  title.style.display = "none";
+
+  // 1. Initial Blast sound
+  playExplosionSound();
+  fireworksBurst();
+
+  // 2. Play Girl Voice
+  playGirlDiwaliVoice();
+
+  setTimeout(() => {
+    showScreen("final");
+    document.getElementById("celebration").style.display = "block";
+    
+    // 3. Auto multiple fireworks array
+    startContinuousFireworks();
+  }, 500);
+}
+
+// FIREWORKS ANIMATION
+const canvas = document.getElementById("fireworks");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+let particles = [];
+const colors = ["#ffd700", "#ff4500", "#ff007f", "#00e5ff", "#76ff03", "#ffffff"];
+
+function fireworksBurst() {
+  let x = Math.random() * canvas.width;
+  let y = Math.random() * canvas.height * 0.6;
+  let color = colors[Math.floor(Math.random() * colors.length)];
+
+  for (let i = 0; i < 70; i++) {
+    let angle = Math.random() * Math.PI * 2;
+    let speed = Math.random() * 7 + 1;
+
+    particles.push({
+      x: x,
+      y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 90,
+      size: Math.random() * 3 + 1,
+      color: color
+    });
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let p = particles[i];
+
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.035;
+    p.life--;
+
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life / 90;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
